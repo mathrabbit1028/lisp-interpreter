@@ -9,8 +9,9 @@ File structure:
 ```
 project/
 ├── lisp/
-│   ├── parser.h
-│   └── lisp.h     (<- integrated header file)  
+│   ├── parser.hpp
+│   ├── parser.cpp
+│   └── lisp.hpp     (<- integrated header file)  
 ├──main.cpp
 ```
 
@@ -23,16 +24,14 @@ project/
 - You have to give an argument that file path of LISP program; actually, it is a `.txt` file now.
   1. **Compilation** command:
     ```
-    g++ lisp/*.cpp main.cpp -o main -std=c++17
+    g++ lisp/parser.cpp main.cpp -o main -std=c++17
     ```
   2. **Running** command:
     ```
-    ./main.exe [-d] ./code.txt
+    ./main.exe ./code.txt
     ```
-  - `-d` means the debug option; if you add `-d` to the running command, the output could be more specific.
 - Each return values means:
   - ` 0` : the given file path is accessible; and the code runs as normal mode.
-  - ` 1` : the given file path is accessible; and the code runs as debug mode.
   - `-1` : the given file path is inaccessible.
 - If there are **syntex errors** in the given file, the runtime error occur.  
   - Please check the error message and modify the source code.
@@ -49,10 +48,7 @@ project/
 ### `lisp/parser.cpp` and `lisp/parser.hpp`
 There are classes in `lisp/parser.hpp` file:
 - **`lisp::ASTNode`**
-  - **Attributes:**
-    - `type`: represent type of node; there is fixed value in each subclass.
-  - **Methods:**
-    - `print()`: print information of instance; **virtual** methods
+  - Abstract class for integrating all type of nodes.
   - **Subclasses:**
     - `lisp::LiteralNode`
     - `lisp::SymbolNode`
@@ -121,7 +117,11 @@ There are functions in `lisp/parser.hpp` file:
 - This program uses **c++ standard libraries(std)**. Also, you have to install `bits/stdc++.h`.
 
 ## Syntex of my LISP language
+- Code:
+  - Must start with `(`.
+  - parentheses must be well-matched.
 - Symbols:
+  - Must not include `(, )`.
   - Must not start with `', ", 0, 1, ..., 9`.
   - Must not start with `+0, +1, ..., +9` and `-0, -1, ..., -9`.
   - Must not use `false, true, null`.
