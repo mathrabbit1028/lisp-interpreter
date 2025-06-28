@@ -36,7 +36,7 @@ project/
 - If there are **syntex errors** in the given file, the runtime error occur.  
   - Please check the error message and modify the source code.
   - Implemented errors:
-    - parentheses error : parentheses are not well-matched.
+    - [parentheses error] parentheses are not well-matched.
     - [token error] Given code does not match to required ( typename of blank ) format.
     - (More syntex errors will be supplemented as the project progresses.)
 - Also, in next week, I will create a CMake file for simplify compilation and execution.
@@ -82,7 +82,7 @@ There are classes in `lisp/parser.hpp` file:
   - **Methods:**
     - `node_type_finder`: return node type - {Literal, Symbol}.
     - `literal_type_finder`: return literal type - {Int, Char, String, Bool, Null}.
-    - `text_to_[]`: type cast to c++ variable and return it.
+    - `text_to_[]`: type cast to C++ variable and return it.
   - **Important note: AST construction is already complete in initializer of class.**
 
 There are functions in `lisp/parser.hpp` file:
@@ -135,8 +135,8 @@ There are functions in `lisp/parser.hpp` file:
 - (Todo) Run installer `install.exe`.
 
 ## Dependency
-- This complier is working on **c++17 and over**. You have to install g++ complier that can complie c++17.
-- This program uses **c++ standard libraries(std)**. Also, you have to install `bits/stdc++.h`.
+- This complier is working on **C++17 and over**. You have to install g++ complier that can complie C++17.
+- This program uses **C++ standard libraries(std)**.
 
 ## Syntex of my LISP language
 - Code:
