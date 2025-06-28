@@ -55,7 +55,7 @@ namespace lisp {
 
     class Parser {
     private:
-        ASTNode* root;
+        ASTNode* root = new ListNode({});
 
         enum class NodeType { Literal, Symbol };
         enum class LiteralType { Int, Char, String, Bool, Null };
@@ -67,6 +67,7 @@ namespace lisp {
         std::string text_to_string(std::string text);
         bool text_to_bool(std::string text);
         std::nullptr_t text_to_null(std::string text);
+        ASTNode* token_to_node(std::string token);
         ListNode* parse_list(std::queue<std::string>& token_queue);
         void print_node(ASTNode* node, int depth);
 

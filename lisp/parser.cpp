@@ -1,6 +1,8 @@
 #include "parser.hpp"
+
 #include <iostream>
 #include <cassert>
+#include <typeinfo>
 
 namespace lisp {
 
@@ -18,7 +20,7 @@ namespace lisp {
 
     void LiteralNode::print() const {
         std::visit([](const auto& val) {
-            std::cout << "[LiteralNode] " << val << "\n";
+            std::cout << "[LiteralNode] " << val << " (" << typeid(val).name() << ")\n";
         }, literal);
     }
 
@@ -41,22 +43,6 @@ namespace lisp {
         std::cout << "(End)\n";
     }
 
-    Parser::Parser(std::vector<std::string> token_list) {
-        std::queue<std::string> token_queue;
-        for (std::string token : token_list) {
-            token_queue.push(token);
-        }
-        if (token_queue.front() != "(")
-            throw syntexError((char*)"[parentheses error] parentheses are not well-matched.");
-        root = parse_list(token_queue);
-        if (!token_queue.empty())
-            throw syntexError((char*)"[parentheses error] parentheses are not well-matched.");
-    }
-
-    void Parser::print() {
-        print_node(root, 0);
-    }
-
     Parser::NodeType Parser::node_type_finder(std::string str) {
         assert(str.length() > 0);
         if (str[0] == '\'' || str[0] == '"') return NodeType::Literal;
@@ -71,16 +57,16 @@ namespace lisp {
         if (str == "null") return LiteralType::Null;
         if (str[0] == '\'') {
             if (str.length() == 3 && str[2] == '\'') return LiteralType::Char;
-            throw syntexError((char*)"[literal format error] given code does not match to required literal format.");
+            throw syntexError((char*)"[token error] Given code does not match to required character format.");
         }
         if (str[0] == '"') {
             if (str.back() == '"') return LiteralType::String;
-            throw syntexError((char*)"[literal format error] given code does not match to required literal format.");
+            throw syntexError((char*)"[token error] Given code does not match to required string format.");
         }
         if (str[0] == '-' || str[0] == '+') str.erase(str.begin());
         for (char c : str) {
             if (c < '0' || c > '9') {
-                throw syntexError((char*)"[literal format error] given code does not match to required literal format.");
+                throw syntexError((char*)"[token error] Given code does not match to required integer format.");
             }
         }
         return LiteralType::Int;
@@ -114,6 +100,26 @@ namespace lisp {
         return nullptr;
     }
 
+    ASTNode* Parser::token_to_node(std::string token) {
+        NodeType node_type = node_type_finder(token);
+        if (node_type == NodeType::Symbol) {
+            return new SymbolNode(token);
+        } else if (node_type == NodeType::Literal) {
+            LiteralType literal_type = literal_type_finder(token);
+            if (literal_type == LiteralType::Int)
+                return new LiteralNode(text_to_int(token));
+            else if (literal_type == LiteralType::Char)
+                return new LiteralNode(text_to_char(token));
+            else if (literal_type == LiteralType::String)
+                return new LiteralNode(text_to_string(token));
+            else if (literal_type == LiteralType::Bool)
+                return new LiteralNode(text_to_bool(token));
+            else if (literal_type == LiteralType::Null)
+                return new LiteralNode(text_to_null(token));
+        }
+        throw syntexError((char*)"[token error] Given token does not match to required format.");
+    }
+
     ListNode* Parser::parse_list(std::queue<std::string>& token_queue) {
         std::vector<ASTNode*> childs;
         while (!token_queue.empty()) {
@@ -121,29 +127,42 @@ namespace lisp {
             token_queue.pop();
             if (token == ")") {
                 return new ListNode(childs);
-            }
-            if (token == "(") {
+            } else if (token == "(") {
                 childs.push_back(this->parse_list(token_queue));
             } else {
-                NodeType node_type = node_type_finder(token);
-                if (node_type == NodeType::Symbol) {
-                    childs.push_back(new SymbolNode(token));
-                } else if (node_type == NodeType::Literal) {
-                    LiteralType literal_type = literal_type_finder(token);
-                    if (literal_type == LiteralType::Int)
-                        childs.push_back(new LiteralNode(text_to_int(token)));
-                    else if (literal_type == LiteralType::Char)
-                        childs.push_back(new LiteralNode(text_to_char(token)));
-                    else if (literal_type == LiteralType::String)
-                        childs.push_back(new LiteralNode(text_to_string(token)));
-                    else if (literal_type == LiteralType::Bool)
-                        childs.push_back(new LiteralNode(text_to_bool(token)));
-                    else if (literal_type == LiteralType::Null)
-                        childs.push_back(new LiteralNode(text_to_null(token)));
-                }
+                childs.push_back(token_to_node(token));
             }
         }
-        throw syntexError((char*)"[parentheses error] parentheses are not well-matched.");
+        throw syntexError((char*)"[parentheses error] Parentheses are not well-matched.");
+    }
+
+    Parser::Parser(std::vector<std::string> token_list) {
+        std::queue<std::string> token_queue;
+        for (std::string token : token_list) {
+            token_queue.push(token);
+        }
+
+        /* general case
+        while (!token_queue.empty()) {
+            std::string token = token_queue.front();
+            token_queue.pop();
+            if (token == ")") {
+                throw syntexError((char*)"[parentheses error] Parentheses are not well-matched.");
+            } else if (token == "(") {
+                root->sub_nodes.push_back(this->parse_list(token_queue));
+            } else {
+                root->sub_nodes.push_back(token_to_node(token));
+            }
+        } */
+
+        if (token_queue.front() != "(")
+            throw syntexError((char*)"[parentheses error] Code must start with an opening parenthesis.");
+        
+        token_queue.pop();
+        root->sub_nodes.push_back(this->parse_list(token_queue));
+        
+        if (!token_queue.empty())
+            throw syntexError((char*)"[parentheses error] Parentheses are not well-matched.");
     }
 
     void Parser::print_node(ASTNode* node, int depth) {
@@ -152,6 +171,10 @@ namespace lisp {
         for (ASTNode* sub : node->sub_nodes) {
             print_node(sub, depth + 1);
         }
+    }
+
+    void Parser::print() {
+        print_node(root, 0);
     }
 
     std::vector<std::string> tokenize(std::string str) {

@@ -1,6 +1,6 @@
 # Make LISP interpreter using C++17
 
-*last update: 2025.06.26.*
+*last update: 2025.06.28.*
 
 ## 1. Implement read and print
 
@@ -37,7 +37,7 @@ project/
   - Please check the error message and modify the source code.
   - Implemented errors:
     - parentheses error : parentheses are not well-matched.
-    - literal format error : given code does not match to required literal format.
+    - [token error] Given code does not match to required ( typename of blank ) format.
     - (More syntex errors will be supplemented as the project progresses.)
 - Also, in next week, I will create a CMake file for simplify compilation and execution.
 
@@ -78,7 +78,6 @@ There are classes in `lisp/parser.hpp` file:
 - **`lisp::Parser`**
   - **Initializer:** `Parser(std::vector<std::string> token_list)`
   - **Attributes:**
-    - `token_queue`: tokens of program; the type is `std::queue<std::string>`.
     - `root`: pointer of root node in AST; the type is `ASTNode*`.
   - **Methods:**
     - `node_type_finder`: return node type - {Literal, Symbol}.
@@ -102,6 +101,29 @@ There are functions in `lisp/parser.hpp` file:
   - `str` : code to interpreting
   - This function returns `lisp::Parser` object with complete AST of input code.
 
+### Some test cases:
+- Syntactically correct cases:
+```
+(+ 1 3)
+(+ 1 3) (+ 1 3)
+("Hello, world!")    <- not handling yet
+("\n")            <- not handling yet
+(     +    1    +3    )
+('a' * -7 + 6)
+(+((1))(((3))))
+(1 'a' "a" false null)
+```
+
+- Syntactically incorrect cases:
+```
+('a")
+(*((1)((3)))
+(1ab)
+(-3c)
+```
+
+***For peer reviewer: I would appreciate it if you could point out any unexpected behavior or edge cases you may come across during your review. (use issues)***
+
 <!-- ## 2. ~~
 
 - Added errors:
@@ -119,7 +141,8 @@ There are functions in `lisp/parser.hpp` file:
 ## Syntex of my LISP language
 - Code:
   - Must start with `(`.
-  - parentheses must be well-matched.
+  - Parentheses must be well-matched.
+    - Well-mathcing implies the condtion that there must be **exactly one outermost parenthesis block** — a single top-level expression.
 - Symbols:
   - Must not include `(, )`.
   - Must not start with `', ", 0, 1, ..., 9`.
