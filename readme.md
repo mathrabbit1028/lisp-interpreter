@@ -1,6 +1,6 @@
 # Make LISP interpreter using C++17
 
-*last update: 2025.06.28.*
+_last update: 2025.06.28._
 
 ## 1. Implement read and print
 
@@ -11,7 +11,7 @@ project/
 ├── lisp/
 │   ├── parser.hpp
 │   ├── parser.cpp
-│   └── lisp.hpp     (<- integrated header file)  
+│   └── lisp.hpp     (<- integrated header file)
 ├──main.cpp
 ```
 
@@ -23,30 +23,33 @@ project/
 
 - You have to give an argument that file path of LISP program; actually, it is a `.txt` file now.
   1. **Compilation** command:
-    ```
-    g++ lisp/parser.cpp main.cpp -o main -std=c++17
-    ```
+  ```
+  g++ lisp/parser.cpp main.cpp -o main -std=c++17
+  ```
   2. **Running** command:
-    ```
-    ./main.exe ./code.txt
-    ```
+  ```
+  ./main.exe ./code.txt
+  ```
 - Each return values means:
   - ` 0` : the given file path is accessible; and the code runs as normal mode.
   - `-1` : the given file path is inaccessible.
-- If there are **syntex errors** in the given file, the runtime error occur.  
+- If there are **Syntax errors** in the given file, the runtime error occur.
   - Please check the error message and modify the source code.
   - Implemented errors:
     - [parentheses error] parentheses are not well-matched.
     - [token error] Given code does not match to required ( typename of blank ) format.
-    - (More syntex errors will be supplemented as the project progresses.)
+    - (More Syntax errors will be supplemented as the project progresses.)
 - Also, in next week, I will create a CMake file for simplify compilation and execution.
 
 ### `lisp/lisp.hpp`
+
 - `lisp/lisp.hpp` is integrated header file; in other word, if you include `lisp/lisp.hpp` file only, all required header files in folder `lisp` are automatically included.
 - We use `lisp` namespace for avoiding name collision. If you can guarantee that collisions do not occur, you can use `using namespace lisp;` (But this is not recommanded.)
 
 ### `lisp/parser.cpp` and `lisp/parser.hpp`
+
 There are classes in `lisp/parser.hpp` file:
+
 - **`lisp::ASTNode`**
   - Abstract class for integrating all type of nodes.
   - **Subclasses:**
@@ -86,6 +89,7 @@ There are classes in `lisp/parser.hpp` file:
   - **Important note: AST construction is already complete in initializer of class.**
 
 There are functions in `lisp/parser.hpp` file:
+
 - **`lisp::tokenize`**
   ```
   std::vector<std::string> lisp::tokenize(std::string str)
@@ -102,7 +106,9 @@ There are functions in `lisp/parser.hpp` file:
   - This function returns `lisp::Parser` object with complete AST of input code.
 
 ### Some test cases:
+
 - Syntactically correct cases:
+
 ```
 (+ 1 3)
 (+ 1 3) (+ 1 3)
@@ -115,6 +121,7 @@ There are functions in `lisp/parser.hpp` file:
 ```
 
 - Syntactically incorrect cases:
+
 ```
 ('a")
 (*((1)((3)))
@@ -122,7 +129,7 @@ There are functions in `lisp/parser.hpp` file:
 (-3c)
 ```
 
-***For peer reviewer: I would appreciate it if you could point out any unexpected behavior or edge cases you may come across during your review. (use issues)***
+**_For peer reviewer: I would appreciate it if you could point out any unexpected behavior or edge cases you may come across during your review. (use issues)_**
 
 <!-- ## 2. ~~
 
@@ -132,13 +139,16 @@ There are functions in `lisp/parser.hpp` file:
 # Release
 
 ## Install
+
 - (Todo) Run installer `install.exe`.
 
 ## Dependency
+
 - This complier is working on **C++17 and over**. You have to install g++ complier that can complie C++17.
 - This program uses **C++ standard libraries(std)**.
 
-## Syntex of my LISP language
+## Syntax of my LISP language
+
 - Code:
   - Must start with `(`.
   - Parentheses must be well-matched.
