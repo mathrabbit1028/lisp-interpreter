@@ -1,6 +1,8 @@
 # Make LISP interpreter using C++17
 
-*last update: 2025.06.28.*
+**_For peer reviewer: I would appreciate it if you could point out any unexpected behavior or edge cases you may come across during your review. (use issues)_**
+
+_last update: 2025.07.11._
 
 ## 1. Implement read and print
 
@@ -31,14 +33,14 @@ project/
     ./main.exe ./code.txt
     ```
 - Each return values means:
-  - ` 0` : the given file path is accessible; and the code runs as normal mode.
+  - ` 0` : the given file path is accessible.
   - `-1` : the given file path is inaccessible.
-- If there are **syntex errors** in the given file, the runtime error occur.  
+- If there are **syntax errors** in the given file, the runtime error occur.  
   - Please check the error message and modify the source code.
   - Implemented errors:
     - [parentheses error] parentheses are not well-matched.
     - [token error] Given code does not match to required ( typename of blank ) format.
-    - (More syntex errors will be supplemented as the project progresses.)
+    - (More syntax errors will be supplemented as the project progresses.)
 - Also, in next week, I will create a CMake file for simplify compilation and execution.
 
 ### `lisp/lisp.hpp`
@@ -106,8 +108,103 @@ There are functions in `lisp/parser.hpp` file:
 ```
 (+ 1 3)
 (+ 1 3) (+ 1 3)
+(print "Hello, World! ()()")
+(     +    1    +3    )
+('a' * -7 + 6)
+(+((1))(((3))))
+(1 'a' "a" false null)
+("\n")     <- not handling yet
+```
+
+- Syntactically incorrect cases:
+```
+('a")
+(*((1)((3)))
+(1ab)
+(-3c)
+```
+
+## 2. Evaluation
+
+File structure:
+
+```
+project/
+├── lisp/
+│   ├── parser.hpp
+│   ├── parser.cpp
+│   ├── evaluator.hpp
+│   ├── evaluator.cpp
+│   └── lisp.hpp     (<- integrated header file)  
+├──main.cpp
+```
+
+**New & Modified Files : `parser.hpp`, `parser.cpp`, `evaluator.hpp`, `evaluator.cpp`, `main.cpp`**
+
+### `main.cpp`
+
+`main.cpp` includes test source code for checking weather implemented compiler well work.
+
+- We use CMake files to compile and run automatically. The file name must be `code.txt`.
+- Implemented errors:
+  - [parentheses error] parentheses are not well-matched.
+  - [token error] Given code does not match to required ( typename of blank ) format.
+  - **(new) [undefined symbol error] included symbol have not been defined.**
+  - (More syntax errors will be supplemented as the project progresses.)
+
+### `lisp/parser.cpp` and `lisp/parser.hpp`
+
+New class(es) and function(s):
+
+- **`lisp::FunctionNode`**
+  - Subclass of `lisp::ASTNode`
+  - **Initializer:** `FunctionNode(std::vector<lisp::SymbolNode>, std::vector<lisp::ASTNode*>)`
+  - **Attributes:**
+    - `parameters`: store value of parameters, type is `std::unordered_map<std::string, lisp::LiteralNode>`.
+    - `constants`: store value of constants, type is `std::unordered_map<std::string, lisp::LiteralNode>`.
+    - `codes`: AST of each lines of function, type is `std::vector<lisp::ASTNode*>`.
+  - **Methods:**
+    - `print()`: print `parameters` with specific format that indicate this node is function type.
+
+Modified class(es) and function(s):
+
+- `lisp::Parser::node_type_finder`: return node type - {Literal, Symbol, **Function**}.
+
+### `lisp/evaluator.cpp` and `lisp/evaluator.hpp`
+There are classes in `lisp/evaluator.hpp` file:
+- **`lisp::Environment`**
+  - **Initializer:** `Environment(std::vector<std::string>, std::vector<lisp::LiteralNode>, std::vector<std::string>, std::vector<lisp::FunctionNode>)`
+  - **Attributes:**
+    - `symbols`: store meaning of each symbol, type is `std::unordered_map<std::string, lisp::LiteralNode>`.
+    - `functions`: store environment of each **function** symbol, type is `std::unordered_map<std::string, lisp::FunctionNode>`.
+  - **Methods:**
+    - `add(lisp::SymbolNode, lisp::LiteralNode)`: add new key and value to `symbols`.
+    - `add(lisp::SymbolNode, lisp::FunctionNode)`: add new key and value to `functions`.
+    - `print()`: print keys and values of `symbols` and `functions`.
+- **`lisp::Evaluator`**
+  - **Initializer:** `Evaluator()`
+  - **Attributes:**
+    - `env_stack`: `stack` of store environment table, type is `std::stack<Environment>`
+  - **Methods:**
+    - `run(lisp::Parser)`: run AST that is included in `Parser` instance.
+
+<!-- There are functions in `lisp/evaluator.hpp` file:
+- **`lisp::tokenize`**
+  ```
+  std::vector<std::string> lisp::tokenize(std::string str)
+  ```
+  - `str` : string to tokenize
+  - This function returns tokens as `std::vector` data structure.
+  - The logic of tokenizing is spliting `str` by whitespace.
+    - For processing complicated code, this logic will be changed. -->
+
+<!-- ### Some test cases:
+- Syntactically correct cases:
+```
+(+ 1 3)
+(+ 1 3) (+ 1 3)
 ("Hello, world!")    <- not handling yet
-("\n")            <- not handling yet
+("\n")               <- not handling yet
 (     +    1    +3    )
 ('a' * -7 + 6)
 (+((1))(((3))))
@@ -120,14 +217,7 @@ There are functions in `lisp/parser.hpp` file:
 (*((1)((3)))
 (1ab)
 (-3c)
-```
-
-***For peer reviewer: I would appreciate it if you could point out any unexpected behavior or edge cases you may come across during your review. (use issues)***
-
-<!-- ## 2. ~~
-
-- Added errors:
-  - undefined symbol error : included symbol have not been defined. -->
+``` -->
 
 # Release
 
@@ -138,13 +228,13 @@ There are functions in `lisp/parser.hpp` file:
 - This complier is working on **C++17 and over**. You have to install g++ complier that can complie C++17.
 - This program uses **C++ standard libraries(std)**.
 
-## Syntex of my LISP language
+## Syntax of my LISP language
 - Code:
   - Must start with `(`.
   - Parentheses must be well-matched.
     - Well-mathcing implies the condtion that there must be **exactly one outermost parenthesis block** — a single top-level expression.
 - Symbols:
-  - Must not include `(, )`.
+  - Must not include `(, ), ', "`.
   - Must not start with `', ", 0, 1, ..., 9`.
   - Must not start with `+0, +1, ..., +9` and `-0, -1, ..., -9`.
   - Must not use `false, true, null`.

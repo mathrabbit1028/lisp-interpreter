@@ -19,11 +19,11 @@ namespace lisp {
 
     typedef std::variant<int, char, std::string, bool, std::nullptr_t> Literal;
 
-    class syntexError : public std::exception {
+    class SyntaxError : public std::exception {
     private:
         char* specific_reason;
     public:
-        syntexError(char* spec);
+        SyntaxError(char* spec);
         const char* what() const noexcept override;
     };
 
