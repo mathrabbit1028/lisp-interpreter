@@ -1,63 +1,19 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include <string>
+#include "astnode.hpp"
+#include "error.hpp"
+#include <iostream>
+#include <cassert>
 #include <vector>
-#include <variant>
 #include <queue>
-#include <exception>
+#include <string>
 
 namespace lisp {
 
-    class ASTNode {
-    public:
-        std::string type;
-        std::vector<ASTNode*> sub_nodes;
-        virtual ~ASTNode() = default;
-        virtual void print() const = 0;
-    };
-
-    typedef std::variant<int, char, std::string, bool, std::nullptr_t> Literal;
-
-    class SyntaxError : public std::exception {
-    private:
-        char* specific_reason;
-    public:
-        SyntaxError(char* spec);
-        const char* what() const noexcept override;
-    };
-
-    class LiteralNode : public ASTNode {
-    private:
-        Literal literal;
-    public:
-        LiteralNode(int value);
-        LiteralNode(char value);
-        LiteralNode(std::string value);
-        LiteralNode(bool value);
-        LiteralNode(std::nullptr_t value);
-        void print() const override;
-    };
-
-    class SymbolNode : public ASTNode {
-    private:
-        std::string symbol_name;
-    public:
-        SymbolNode(std::string symbol);
-        void print() const override;
-    };
-
-    class ListNode : public ASTNode {
-    public:
-        ListNode(std::vector<ASTNode*> vec_nodes);
-        void print() const override;
-    };
-
     class Parser {
     private:
-        ASTNode* root = new ListNode({});
-
-        enum class NodeType { Literal, Symbol };
+        enum class NodeType { Literal, Symbol, Function };
         enum class LiteralType { Int, Char, String, Bool, Null };
 
         NodeType node_type_finder(std::string str);
@@ -72,6 +28,7 @@ namespace lisp {
         void print_node(ASTNode* node, int depth);
 
     public:
+        ASTNode* root = new ListNode({});
         Parser(std::vector<std::string> token_list);
         void print();
     };

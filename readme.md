@@ -2,7 +2,7 @@
 
 **_For peer reviewer: I would appreciate it if you could point out any unexpected behavior or edge cases you may come across during your review. (use issues)_**
 
-_last update: 2025.07.11._
+_last update: 2025.07.22._
 
 ## 1. Implement read and print
 
@@ -107,7 +107,6 @@ There are functions in `lisp/parser.hpp` file:
 - Syntactically correct cases:
 ```
 (+ 1 3)
-(+ 1 3) (+ 1 3)
 (print "Hello, World! ()()")
 (     +    1    +3    )
 ('a' * -7 + 6)
@@ -131,28 +130,66 @@ File structure:
 ```
 project/
 ├── lisp/
-│   ├── parser.hpp
-│   ├── parser.cpp
+│   ├── astnode.hpp
+│   ├── astnode.cpp
+│   ├── error.hpp
+│   ├── error.cpp
+│   ├── environment.hpp
+│   ├── environment.cpp
 │   ├── evaluator.hpp
 │   ├── evaluator.cpp
+│   ├── parser.hpp
+│   ├── parser.cpp
 │   └── lisp.hpp     (<- integrated header file)  
 ├──main.cpp
 ```
 
-**New & Modified Files : `parser.hpp`, `parser.cpp`, `evaluator.hpp`, `evaluator.cpp`, `main.cpp`**
+### File Restructuring
+- Custom error class is moved to `error.hpp/cpp`.
+- All node class is moved to `astnode.hpp/cpp`.
+- `parser.hpp/cpp` includes only `parser` class.
+
+### Include Dependency Outline
+- `error.hpp <- `
+- `parser.hpp <- astnode.hpp, error.hpp`
+- `astnode.hpp <- `
+- `environment.hpp <- astnode.hpp`
+- `evaluator.cpp <- environment.hpp, astnode.hpp, error.hpp`
 
 ### `main.cpp`
 
 `main.cpp` includes test source code for checking weather implemented compiler well work.
 
-- We use CMake files to compile and run automatically. The file name must be `code.txt`.
+- We use **CMake** to compile conveniently.
+  - Initializaion(only first time), **in project root folder,**
+    ```
+    mkdir build
+    cd build
+    cmake ..
+    ```
+  - In every compilation, **in project root folder,**
+    - Release:
+      ```
+      cmake --build ./build --config Release
+      ./build/Release/main ./code.txt
+      ```
+    - Debug:
+      ```
+      cmake --build ./build --config Debug
+      ./build/Debug/main ./code.txt
+      ```
 - Implemented errors:
   - [parentheses error] parentheses are not well-matched.
   - [token error] Given code does not match to required ( typename of blank ) format.
-  - **(new) [undefined symbol error] included symbol have not been defined.**
+  - **(new) [undefined symbol error] Included symbol have not been defined.**
+  - **(new) [list error] List is empty.**
+  - **(new) [list error] First symbol of a list is not a function.**
+  - **(new) [list error] Mismatch between the number of parameters and the number of input values.**
+  - **(new) [operator error] Number of operand is not (one, two, ...).**
+  - **(new) [operator error] Type of operand is not (Int, Char, String, Bool, Null).**
   - (More syntax errors will be supplemented as the project progresses.)
 
-### `lisp/parser.cpp` and `lisp/parser.hpp`
+### `lisp/astnode.cpp` and `lisp/astnode.hpp`
 
 New class(es) and function(s):
 
@@ -161,32 +198,47 @@ New class(es) and function(s):
   - **Initializer:** `FunctionNode(std::vector<lisp::SymbolNode>, std::vector<lisp::ASTNode*>)`
   - **Attributes:**
     - `parameters`: store value of parameters, type is `std::unordered_map<std::string, lisp::LiteralNode>`.
-    - `constants`: store value of constants, type is `std::unordered_map<std::string, lisp::LiteralNode>`.
     - `codes`: AST of each lines of function, type is `std::vector<lisp::ASTNode*>`.
   - **Methods:**
     - `print()`: print `parameters` with specific format that indicate this node is function type.
 
 Modified class(es) and function(s):
 
-- `lisp::Parser::node_type_finder`: return node type - {Literal, Symbol, **Function**}.
+- `lisp::Parser::node_type_finder`: return node type - {Literal, Symbol, **Function**}. (todo)
+
+### `lisp/environment.cpp` and `lisp/environment.hpp`
+There are classes in `lisp/environment.hpp` file:
+- **`lisp::Environment`**
+  - **Initializer:** `Environment(std::vector<lisp::SymbolNode>, std::vector<lisp::ASTNode*>)`
+  - **Attributes:**
+    - `symbols`: store meaning of each symbol, type is `std::unordered_map<std::string, lisp::ASTNode*>`.
+  - **Methods:**
+    - `add(lisp::SymbolNode, lisp::ASTNode*)`: add new key and value to `symbols`.
+    - `get(std::string)`: find the given key and return value; if not exists, it return `nullptr`.
+    - `print()`: print keys and values of `symbols` and `functions`.
 
 ### `lisp/evaluator.cpp` and `lisp/evaluator.hpp`
 There are classes in `lisp/evaluator.hpp` file:
-- **`lisp::Environment`**
-  - **Initializer:** `Environment(std::vector<std::string>, std::vector<lisp::LiteralNode>, std::vector<std::string>, std::vector<lisp::FunctionNode>)`
-  - **Attributes:**
-    - `symbols`: store meaning of each symbol, type is `std::unordered_map<std::string, lisp::LiteralNode>`.
-    - `functions`: store environment of each **function** symbol, type is `std::unordered_map<std::string, lisp::FunctionNode>`.
-  - **Methods:**
-    - `add(lisp::SymbolNode, lisp::LiteralNode)`: add new key and value to `symbols`.
-    - `add(lisp::SymbolNode, lisp::FunctionNode)`: add new key and value to `functions`.
-    - `print()`: print keys and values of `symbols` and `functions`.
 - **`lisp::Evaluator`**
-  - **Initializer:** `Evaluator()`
+  - **Initializer:** `Evaluator(lisp::Environment globals)`
   - **Attributes:**
-    - `env_stack`: `stack` of store environment table, type is `std::stack<Environment>`
+    - `env_stack`: `stack` of stored environment table, type is `std::vector<lisp::Environment>`
   - **Methods:**
-    - `run(lisp::Parser)`: run AST that is included in `Parser` instance.
+    - `run(lisp::ASTNode*)`: run AST whose root is given parameter.
+
+There are functions in `lisp/evaluator.hpp` file:
+- **`lisp::__int_binary_operation(std::vector<Literal> argv)`**
+  - Check length of `argv` is two and type of each element in `argv` is `Int`.
+  - If passes, cast each element to `int` and return them as `std::vector<int>`.
+- **`lisp::__add__(std::vector<Literal> argv)`**
+  - Return results of addition.
+- **`lisp::__sub__(std::vector<Literal> argv)`**
+  - Return results of subtraction.
+- **`lisp::__mul__(std::vector<Literal> argv)`**
+  - Return results of multiplication.
+- **`lisp::__intdiv__(std::vector<Literal> argv)`**
+  - Return results of **division between `int` in C.**
+  - `-7/2 = -3`.
 
 <!-- There are functions in `lisp/evaluator.hpp` file:
 - **`lisp::tokenize`**
@@ -198,26 +250,18 @@ There are classes in `lisp/evaluator.hpp` file:
   - The logic of tokenizing is spliting `str` by whitespace.
     - For processing complicated code, this logic will be changed. -->
 
-<!-- ### Some test cases:
+### Some test cases:
+(will be supplemented)
 - Syntactically correct cases:
 ```
-(+ 1 3)
-(+ 1 3) (+ 1 3)
-("Hello, world!")    <- not handling yet
-("\n")               <- not handling yet
-(     +    1    +3    )
-('a' * -7 + 6)
-(+((1))(((3))))
-(1 'a' "a" false null)
+(+ 2 3) -> 5
+(+ 2 (* 3 4)) -> 14
 ```
 
 - Syntactically incorrect cases:
 ```
-('a")
-(*((1)((3)))
-(1ab)
-(-3c)
-``` -->
+
+```
 
 # Release
 
@@ -227,6 +271,7 @@ There are classes in `lisp/evaluator.hpp` file:
 ## Dependency
 - This complier is working on **C++17 and over**. You have to install g++ complier that can complie C++17.
 - This program uses **C++ standard libraries(std)**.
+- This program uses CMake to convenience compilation.
 
 ## Syntax of my LISP language
 - Code:
@@ -251,4 +296,17 @@ There are classes in `lisp/evaluator.hpp` file:
     - `true, false`
   - Null literal
     - `null`
+- Lists:
+  - List must be include one or more tokens.
+  - First token of a list must be function(operator).
+  - Number of total tokens except first is equal to number of parameters of function(operator).
 - Operators
+  - Each operator has fixed number of parameters and type of parameters.
+  - `+`, `__add__`
+    - requires two int operand.
+  - `-`, `__sub__`
+    - requires two int operand.
+  - `*`, `__mul__`
+    - requires two int operand.
+  - `/`, `__intdiv__`
+    - requires two int operand.

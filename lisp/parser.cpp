@@ -1,48 +1,8 @@
 #include "parser.hpp"
 
-#include <iostream>
-#include <cassert>
-#include <typeinfo>
-
 namespace lisp {
 
-    SyntaxError::SyntaxError(char* spec) : specific_reason(spec) {}
-
-    const char* SyntaxError::what() const noexcept {
-        return specific_reason;
-    }
-
-    LiteralNode::LiteralNode(int value) : literal(value) { type = "Literal"; }
-    LiteralNode::LiteralNode(char value) : literal(value) { type = "Literal"; }
-    LiteralNode::LiteralNode(std::string value) : literal(value) { type = "Literal"; }
-    LiteralNode::LiteralNode(bool value) : literal(value) { type = "Literal"; }
-    LiteralNode::LiteralNode(std::nullptr_t value) : literal(value) { type = "Literal"; }
-
-    void LiteralNode::print() const {
-        std::visit([](const auto& val) {
-            std::cout << "[LiteralNode] " << val << " (" << typeid(val).name() << ")\n";
-        }, literal);
-    }
-
-    SymbolNode::SymbolNode(std::string symbol) : symbol_name(symbol) { type = "Symbol"; }
-
-    void SymbolNode::print() const {
-        std::cout << "[SymbolNode] " << symbol_name << "\n";
-    }
-
-    ListNode::ListNode(std::vector<ASTNode*> vec_nodes) {
-        type = "List";
-        sub_nodes = vec_nodes;
-    }
-
-    void ListNode::print() const {
-        std::cout << "[ListNode] ";
-        for (ASTNode* node_ptr : sub_nodes) {
-            std::cout << node_ptr->type << " ";
-        }
-        std::cout << "(End)\n";
-    }
-
+    /* Parser */
     Parser::NodeType Parser::node_type_finder(std::string str) {
         assert(str.length() > 0);
         if (str[0] == '\'' || str[0] == '"') return NodeType::Literal;
@@ -159,7 +119,7 @@ namespace lisp {
             throw SyntaxError((char*)"[parentheses error] Code must start with an opening parenthesis.");
         
         token_queue.pop();
-        root->sub_nodes.push_back(this->parse_list(token_queue));
+        ((ListNode*)root)->sub_nodes.push_back(this->parse_list(token_queue));
         
         if (!token_queue.empty())
             throw SyntaxError((char*)"[parentheses error] Parentheses are not well-matched.");
@@ -168,8 +128,10 @@ namespace lisp {
     void Parser::print_node(ASTNode* node, int depth) {
         for (int i = 0; i < depth; i++) std::cout << "    ";
         node->print();
-        for (ASTNode* sub : node->sub_nodes) {
-            print_node(sub, depth + 1);
+        if (node->type == "List") {
+            for (ASTNode* sub_node : ((ListNode*)node)->sub_nodes) {
+                print_node(sub_node, depth + 1);
+            }
         }
     }
 
