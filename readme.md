@@ -2,7 +2,7 @@
 
 **_For peer reviewer: I would appreciate it if you could point out any unexpected behavior or edge cases you may come across during your review. (use issues)_**
 
-_last update: 2025.07.22._
+_last update: 2025.07.23._
 
 ## 1. Implement read and print
 
