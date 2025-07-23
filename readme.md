@@ -186,7 +186,8 @@ project/
   - **(new) [list error] First symbol of a list is not a function.**
   - **(new) [list error] Mismatch between the number of parameters and the number of input values.**
   - **(new) [operator error] Number of operand is not (one, two, ...).**
-  - **(new) [operator error] Type of operand is not (Int, Char, String, Bool, Null).**
+  - **(new) [operator error] Token type of operand is not (Literal, Symbol, List, Function).**
+  - **(new) [operator error] Data type of operand is not (Int, Char, String, Bool, Null).**
   - (More syntax errors will be supplemented as the project progresses.)
 
 ### `lisp/astnode.cpp` and `lisp/astnode.hpp`
@@ -227,28 +228,42 @@ There are classes in `lisp/evaluator.hpp` file:
     - `run(lisp::ASTNode*)`: run AST whose root is given parameter.
 
 There are functions in `lisp/evaluator.hpp` file:
-- **`lisp::__int_binary_operation(std::vector<Literal> argv)`**
-  - Check length of `argv` is two and type of each element in `argv` is `Int`.
-  - If passes, cast each element to `int` and return them as `std::vector<int>`.
-- **`lisp::__add__(std::vector<Literal> argv)`**
-  - Return results of addition.
-- **`lisp::__sub__(std::vector<Literal> argv)`**
-  - Return results of subtraction.
-- **`lisp::__mul__(std::vector<Literal> argv)`**
-  - Return results of multiplication.
-- **`lisp::__intdiv__(std::vector<Literal> argv)`**
-  - Return results of **division between `int` in C.**
-  - `-7/2 = -3`.
-
-<!-- There are functions in `lisp/evaluator.hpp` file:
-- **`lisp::tokenize`**
+- **`lisp::__int_checking`**
   ```
-  std::vector<std::string> lisp::tokenize(std::string str)
+  std::vector<int> lisp::__int_checking(std::vector<lisp::Literal> argv)
   ```
-  - `str` : string to tokenize
-  - This function returns tokens as `std::vector` data structure.
-  - The logic of tokenizing is spliting `str` by whitespace.
-    - For processing complicated code, this logic will be changed. -->
+  - `argv` : operands as `lisp::Literal` type.
+  - Check type of each element in `argv` is `Int`.
+  - If passes, casts each element to `int` and returns them as `std::vector<int>`.
+- **`lisp::__add__`**
+  ```
+  lisp::Literal lisp::__add__(std::vector<lisp::Literal> argv)
+  ```
+  - `argv` : operands as `lisp::Literal` type.
+  - Check type of each element in `argv` is `Int`.
+  - If passes, casts each element to `int` and returns results of addition.
+- **`lisp::__sub__`**
+  ```
+  lisp::Literal lisp::__sub__(std::vector<lisp::Literal> argv)
+  ```
+  - `argv` : operands as `lisp::Literal` type.
+  - Check type of each element in `argv` is `Int`.
+  - If passes, casts each element to `int` and returns results of subtraction.
+- **`lisp::__mul__`**
+  ```
+  lisp::Literal lisp::__mul__(std::vector<lisp::Literal> argv)
+  ```
+  - `argv` : operands as `lisp::Literal` type.
+  - Check type of each element in `argv` is `Int`.
+  - If passes, casts each element to `int` and returns results of multiplication.
+- **`lisp::__intdiv__`**
+  ```
+  lisp::Literal lisp::__intdiv__(std::vector<lisp::Literal> argv)
+  ```
+  - `argv` : operands as `lisp::Literal` type.
+  - Check type of each element in `argv` is `Int`.
+  - If passes, casts each element to `int` and returns results of **division between `int` in C.**
+    - `-7/2 = -3`.
 
 ### Some test cases:
 (will be supplemented)
@@ -256,11 +271,11 @@ There are functions in `lisp/evaluator.hpp` file:
 ```
 (+ 2 3) -> 5
 (+ 2 (* 3 4)) -> 14
-```
 
-- Syntactically incorrect cases:
-```
-
+(def! a 6) -> 6
+(def! b (+ a 2)) -> 8
+(+ a b) -> 14
+(let* (c 2) c) -> 2
 ```
 
 # Release
@@ -282,7 +297,7 @@ There are functions in `lisp/evaluator.hpp` file:
   - Must not include `(, ), ', "`.
   - Must not start with `', ", 0, 1, ..., 9`.
   - Must not start with `+0, +1, ..., +9` and `-0, -1, ..., -9`.
-  - Must not use `false, true, null`.
+  - Must not use `false, true, null, +, -, *, /, def!, let*`.
 - Literals:
   - Integer literal **(32bit signed)**
     - decimal : `-1, 0, 103, +49`
@@ -310,3 +325,16 @@ There are functions in `lisp/evaluator.hpp` file:
     - requires two int operand.
   - `/`, `__intdiv__`
     - requires two int operand.
+  - `def!`, `__global__`
+    - requires two operand -- symbol and anytype.
+    - defines symbol as given literal in **global scope.**
+    - returns given literal(=value of symbol).
+  - `let*`, `__local__`
+    - requires two operand -- list and anytype.
+    - defines **local parameters** using given list by matching adjacent tokens.
+      - In this list, odd-th tokens must be symbol.
+      - Also, length of this list must be even.
+    - returns value of second operand using value of local parameters.
+    - (errors)
+      - [operator error] First list of let* does not have even size.
+      - [operator error] Odd-th value in list of let* is not symbol token.

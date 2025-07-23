@@ -19,22 +19,24 @@ int main(int argc, char* argv[]) {
     }
 
     std::string code;
-    std::getline(file, code);
-
-    lisp::Parser parser = lisp::read_str(code);
-
-    parser.print();
-
     lisp::Evaluator evaluator = lisp::Evaluator();
-    lisp::Literal result = evaluator.run(((lisp::ListNode*)parser.root)->sub_nodes[0]);
+    while (std::getline(file, code)) {
+        if (code.length() == 0) continue;
 
-    std::visit([](const auto& val) {
-        if constexpr (std::is_same_v<std::decay_t<decltype(val)>, std::nullptr_t>) {
-            std::cout << "nullptr\n";
-        } else {
-            std::cout << val << " (" << typeid(val).name() << ")\n";
-        }
-    }, result);
+        lisp::Parser parser = lisp::read_str(code);
+
+        parser.print();
+
+        lisp::Literal result = evaluator.run(((lisp::ListNode*)parser.root)->sub_nodes[0]);
+
+        std::visit([](const auto& val) {
+            if constexpr (std::is_same_v<std::decay_t<decltype(val)>, std::nullptr_t>) {
+                std::cout << "nullptr\n";
+            } else {
+                std::cout << val << " (" << typeid(val).name() << ")\n";
+            }
+        }, result);
+    }
 
     return 0;
 }

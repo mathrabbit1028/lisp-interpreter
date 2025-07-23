@@ -11,6 +11,7 @@ namespace lisp {
     }
 
     void Environment::add(SymbolNode name, ASTNode* node) {
+        // check
         this->symbols.insert({name.symbol_name, node});
     }
 

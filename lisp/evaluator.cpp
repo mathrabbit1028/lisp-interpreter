@@ -16,51 +16,63 @@ namespace lisp {
     }
     */
 
-    std::vector<int> __int_binary_operation(std::vector<Literal> argv) {
+    std::vector<int> __int_checking(std::vector<Literal> argv) {
         std::vector<int> res;
-        if (argv.size() != 2)
-            throw SyntaxError((char*)"[operator error] Number of operand is not two.");
         for (int i = 0; i < 2; i++) {
             if (!std::holds_alternative<int>(argv[i]))
-                throw SyntaxError((char*)"[operator error] Type of operand is not Int.");
+                throw SyntaxError((char*)"[operator error] Data type of operand is not Int.");
             res.push_back(*(std::get_if<int>(&argv[i])));
         }
         return res;
     }
 
     Literal __add__(std::vector<Literal> argv) {
-        std::vector<int> num = __int_binary_operation(argv);
+        std::vector<int> num = __int_checking(argv);
         return num[0] + num[1];
     }
 
     Literal __sub__(std::vector<Literal> argv) {
-        std::vector<int> num = __int_binary_operation(argv);
+        std::vector<int> num = __int_checking(argv);
         return num[0] - num[1];
     }
 
     Literal __mul__(std::vector<Literal> argv) {
-        std::vector<int> num = __int_binary_operation(argv);
+        std::vector<int> num = __int_checking(argv);
         return num[0] * num[1];
     }
 
     Literal __intdiv__(std::vector<Literal> argv) {
-        std::vector<int> num = __int_binary_operation(argv);
+        std::vector<int> num = __int_checking(argv);
         return num[0] / num[1];
     }
 
-    // Literal __global__(std::vector<Literal> argv) {
-    //     ;
-    // }
+    Literal __global__(Evaluator* eval, SymbolNode* name, std::vector<Literal> argv) {
+        eval->env_stack[0].add(name->symbol_name, new LiteralNode(argv[0]));
+        return argv[0];
+    }
 
-    // Literal __local__(std::vector<Literal> argv) {
-    //     ;
-    // }
+    Literal __local__(Evaluator* eval, ListNode* parameters, ASTNode* expression) {
+        eval->env_stack.push_back(Environment());
+        if (parameters->sub_nodes.size() % 2 == 1)
+            throw SyntaxError((char*)"[operator error] First list of let* does not have even size.");
+        for (int i = 0; i < parameters->sub_nodes.size(); i += 2) {
+            if (parameters->sub_nodes[i]->type != "Symbol")
+                throw SyntaxError((char*)"[operator error] Odd-th value in list of let* is not symbol token.");
+            eval->env_stack.back().add(
+                ((SymbolNode*)parameters->sub_nodes[i])->symbol_name, 
+                new LiteralNode(eval->run(parameters->sub_nodes[i+1]))
+            );
+        }
+        Literal res = eval->run(expression);
+        eval->env_stack.pop_back();
+        return res;
+    }
 
     Evaluator::Evaluator(Environment globals) {
         this->env_stack.push_back(globals);
     }
     Evaluator::Evaluator() {
-        ;
+        this->env_stack.push_back(Environment());
     }
 
     ASTNode* Evaluator::find(std::string name) {
@@ -97,19 +109,58 @@ namespace lisp {
             if (((ListNode*)node)->sub_nodes[0]->type == "Symbol") {
                 SymbolNode* oper = (SymbolNode*)((ListNode*)node)->sub_nodes[0];
                 std::vector<Literal> argv;
-                for (int i = 1; i < ((ListNode*)node)->sub_nodes.size(); i++)
-                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[i]));
-                if (oper->symbol_name ==    "+") return __add__(argv);
-                if (oper->symbol_name ==    "-") return __sub__(argv);
-                if (oper->symbol_name ==    "*") return __mul__(argv);
-                if (oper->symbol_name ==    "/") return __intdiv__(argv);
-                // if (oper->symbol_name == "def!") return __global__(argv);
-                // if (oper->symbol_name == "let*") return __local__(argv);
+
+                if (oper->symbol_name == "def!") {
+                    if (((ListNode*)node)->sub_nodes.size() - 1 != 2)
+                        throw SyntaxError((char*)"[operator error] Number of operand is not two.");
+                    if (((ListNode*)node)->sub_nodes[1]->type != "Symbol")
+                        throw SyntaxError((char*)"[operator error] Token type of operand is not Symbol.");
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[2]));
+                    return __global__(this, (SymbolNode*)(((ListNode*)node)->sub_nodes[1]), argv);
+                }
+                if (oper->symbol_name == "let*") {
+                    if (((ListNode*)node)->sub_nodes.size() - 1 != 2)
+                        throw SyntaxError((char*)"[operator error] Number of operand is not two.");
+                    if (((ListNode*)node)->sub_nodes[1]->type != "List")
+                        throw SyntaxError((char*)"[operator error] Token type of operand is not List.");
+                    return __local__(this, (ListNode*)(((ListNode*)node)->sub_nodes[1]), ((ListNode*)node)->sub_nodes[2]);
+                }
+
+                if (oper->symbol_name == "+") {
+                    if (((ListNode*)node)->sub_nodes.size() - 1 != 2)
+                        throw SyntaxError((char*)"[operator error] Number of operand is not two.");
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[1]));
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[2]));
+                    return __add__(argv);
+                }
+                if (oper->symbol_name == "-") {
+                    if (((ListNode*)node)->sub_nodes.size() - 1 != 2)
+                        throw SyntaxError((char*)"[operator error] Number of operand is not two.");
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[1]));
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[2]));
+                    return __sub__(argv);
+                }
+                if (oper->symbol_name == "*") {
+                    if (((ListNode*)node)->sub_nodes.size() - 1 != 2)
+                        throw SyntaxError((char*)"[operator error] Number of operand is not two.");
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[1]));
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[2]));
+                    return __mul__(argv);
+                }
+                if (oper->symbol_name == "/") {
+                    if (((ListNode*)node)->sub_nodes.size() - 1 != 2)
+                        throw SyntaxError((char*)"[operator error] Number of operand is not two.");
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[1]));
+                    argv.push_back(this->run(((ListNode*)node)->sub_nodes[2]));
+                    return __intdiv__(argv);
+                }
+
                 throw SyntaxError((char*)"[list error] First symbol of a list is not a function.");
             }
-            FunctionNode* func = (FunctionNode*)((ListNode*)node)->sub_nodes[0];
-            if (func->parameters.size() != ((ListNode*)node)->sub_nodes.size() - 1)
-                throw SyntaxError((char*)"[list error] Mismatch between the number of parameters and the number of input values.");
+
+            // FunctionNode* func = (FunctionNode*)((ListNode*)node)->sub_nodes[0];
+            // if (func->parameters.size() != ((ListNode*)node)->sub_nodes.size() - 1)
+            //     throw SyntaxError((char*)"[list error] Mismatch between the number of parameters and the number of input values.");
             
             return nullptr; // implemented later
         }

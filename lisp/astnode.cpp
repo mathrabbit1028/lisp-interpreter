@@ -26,6 +26,10 @@ namespace lisp {
         this->literal = value;
         this->type = "Literal";
     }
+    LiteralNode::LiteralNode(Literal value) {
+        this->literal = value;
+        this->type = "Literal";
+    }
 
     void LiteralNode::print() const {
         std::visit([](const auto& val) {

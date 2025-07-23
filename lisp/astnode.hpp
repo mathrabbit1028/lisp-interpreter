@@ -26,6 +26,7 @@ namespace lisp {
         LiteralNode(std::string value);
         LiteralNode(bool value);
         LiteralNode(std::nullptr_t value);
+        LiteralNode(Literal value);
         void print() const override;
     };
 

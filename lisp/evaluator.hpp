@@ -11,10 +11,10 @@
 namespace lisp {
     class Evaluator {
     private:
-        std::vector<Environment> env_stack;
         ASTNode* find(std::string name);
     public:
         Evaluator();
+        std::vector<Environment> env_stack;
         Evaluator(Environment globals);
         Literal run(ASTNode* root);
     };
